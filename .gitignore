@@ -8,6 +8,10 @@
 *.log
 *.log.*
 *.sig
-
+*.tar.xz
+*.tar.gz
+.SRCINFO
+*.pkg.tar.xz
+*.log
 pkg/
 src/

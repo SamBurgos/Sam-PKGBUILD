@@ -1,0 +1,101 @@
+# Instructions taken from https://wiki.archlinux.org/index.php/arch_packaging_standards and https://wiki.archlinux.org/index.php/PKGBUILD to build a package
+# Remove spaces from "pkgname" downwards, these were intended as visually easy to read, as well as this header
+# Requirements: basic to intermediate bash scripting
+# You can check my other packages to see any templates available
+
+# Maintainer: Maintainer name <email-of-maintaner@domain>
+# Maintainer: Co-Maintainer name <email-of-maintaner-at-domain-other-format>
+# Contributor: Previous maintainer name <email-of-previous-maintaner-at-domain>
+
+pkgname="package name upstream name (without the quotes)"
+
+_pkgname="package name with other or download name (without the quotes)"
+
+pkgver=#.##.# # Version of package as upstream intended
+
+pkgrel=# # Fixes or minor changes applied, it starts at 1 and increases depending on the fixes
+
+epoch= # Barely used for some packages, it leaves the version of the package as #:#.##.#-#
+
+pkgdesc="A simple description of the package with less than 80 characters as general rule. With double quotes"
+
+arch=('x86' 'x86_64') # Architectures that the PKGBUILD is intended to build and work on. If instead a package can be compiled for any architecture, but is architecture-specific once compiled, specify all architectures officially supported by Arch, i.e. arch=('x86_64'). With single quotes
+
+url="The URL of the official site of the software being packaged. With double quotes"
+
+license=('GPL') # The license under which the software is distributed. The common licences are (L)GPL, (L)GPL2 or (L)GPL3 but you can use others as well. With single quotes
+
+groups=() # The group the package belongs in. I.e.: when installing the kdebase package, it installs all packages belonging in that group
+
+# An array of packages that must be installed for the software to build and run  
+depends=('dependency 1' 
+    'dependency 2'
+    'dependency 3'
+    'dependency n')
+
+# An array of packages that are not needed for the software to function, but provide additional features. A short description of the extra functionality each optdepend provides should also be noted  
+optdepends=('optional dependency 1: what this optional dependency provides' 
+    'optional dependency 2: what this optional dependency provides'
+    'optional dependency 3: what this optional dependency provides'
+    'optional dependency n: what this optional dependency provides')
+
+# An array of packages that are only required to build the software. The packages in the depends array are implicitly required to build the package, they should not be duplicated here
+makedepends=('build dependency 1' 
+    'build dependency 2'
+    'build dependency 3'
+    'build dependency n')
+
+provides=("") # An array of additional packages that the software provides the features of. With double quotes
+ 
+conflicts=("") # An array of packages that conflict with, or cause problems with the package, if installed. With double quotes
+
+replaces=("") # An array of obsolete packages that are replaced by the package. With double quotes
+
+backup=('') # An array of files that can contain user-made changes and should be preserved during upgrade or removal of a package, primarily intended for configuration files in /etc. With single quotes
+
+options=('') # This array allows overriding some of the default behavior of makepkg, defined in /etc/makepkg.conf. To set an option, include the name in the array. To disable an option, place an ! before it. With single quotes
+
+install= #The name of the .install script to be included in the package. This should be the same as pkgname. pacman has the ability to store and execute a package-specific script when it installs, removes or upgrades a package. No quotes
+
+# An array of files needed to build the package. It must contain the location of the software source, which in most cases is a full HTTP or FTP URL. The previously set variables pkgname and pkgver can be used effectively here. Can be with single or double quotes
+# Also since it must be a unique source filename, you can use a provided personal unique filename to add to syntax
+# You can add any patches or diff files in here as well
+source=("git+https://gitlab.gnome.org/GNOME/gnome-calendar.git"
+        "$url/archive/$pkgver.tar.gz"
+        "unique_package_name::file_url"
+        "name-of-a-diff-file.diff"
+        "name-of-a-patch-file.patch")
+
+# The checksum type and values of the packages provided by upstream, such as in release announcements. With single quotes
+# Preferred order: sha256 > sha1 > md5 > skip package signature 
+sha256sums=('SKIP'
+            'c1aa738a4ff275f725d0aa5406312600503b2b59270448a9e6b30b82a924dc27'
+            '2445f754a044dd1ccb8c948b5d5b43248b61ec3570fc76416f74148abc5abf4d')
+
+# The functions used from here on depends on the available options and how upstream might build these packages
+# Once again you can check some example packages on Archlinux or my templates to see how these are used, since its usage depends on a case to case basis
+# prepare() is required mainly for patches and diff files to apply before compile or copy the files, these files MUST BE on the same place as the PKGBUILD
+prepare() {
+  cd $_pkgname
+  patch -Np1 -i ../name-of-a-diff-file.diff
+  patch -Np0 -i ../name-of-a-patch-file.patch
+}
+
+# build() is used mainly for packages that requires to be build via autoconf, make/make file, meson or related; also it is used to execute the .install files or to make any changes required (rename of executables, installation of files, etc.)
+build() {
+  arch-meson $_pkgname build -D gtk_doc=true
+  ninja -C build
+}
+
+# check() is used to test if build and preliminary execution will be successful, only used on certain packages
+check() {
+  cd build
+  meson test
+}
+
+# package() is the main function that builds or copy the files to the required locations depending on how upstream handles these
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+}
+
+# Other files can be added to do any particular job depending on the package as well as scripts, systemd service files, PAM files, and other configuration files as needed
